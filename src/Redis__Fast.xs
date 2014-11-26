@@ -46,6 +46,7 @@ typedef struct redis_fast_s {
     double read_timeout;
     double write_timeout;
     int current_database;
+    int is_utf8;
     int need_recoonect;
     int is_connected;
     SV* on_connect;
@@ -404,10 +405,16 @@ static redis_fast_reply_t Redis__Fast_decode_reply(Redis__Fast self, redisReply*
     switch (reply->type) {
     case REDIS_REPLY_ERROR:
         res.error = sv_2mortal(newSVpvn(reply->str, reply->len));
+        if (self->is_utf8) {
+            sv_utf8_decode(res.error);
+        }
         break;
     case REDIS_REPLY_STRING:
     case REDIS_REPLY_STATUS:
         res.result = sv_2mortal(newSVpvn(reply->str, reply->len));
+        if (self->is_utf8) {
+            sv_utf8_decode(res.result);
+        }
         break;
 
     case REDIS_REPLY_INTEGER:
@@ -703,6 +710,9 @@ static redis_fast_reply_t Redis__Fast_info_custom_decode(Redis__Fast self, redis
                 size_t keylen;
                 keylen = sep - str;
                 val = newSVpvn(sep + 1, linelen - keylen - 1);
+                if (self->is_utf8) {
+                    sv_utf8_decode(val);
+                }
                 hv_store(hv, str, keylen, val, 0);
             }
             if(line == NULL) {
@@ -854,6 +864,24 @@ CODE:
 OUTPUT:
     RETVAL
 
+int
+__set_utf8(Redis::Fast self, int val)
+CODE:
+{
+    RETVAL = self->is_utf8 = val;
+}
+OUTPUT:
+    RETVAL
+
+
+int
+__get_utf8(Redis::Fast self)
+CODE:
+{
+    RETVAL = self->is_utf8;
+}
+OUTPUT:
+    RETVAL
 
 int
 __sock(Redis::Fast self)
@@ -1068,7 +1096,11 @@ CODE:
     Newx(argvlen, sizeof(size_t) * argc, size_t);
 
     for (i = 0; i < argc; i++) {
-        argv[i] = SvPV(ST(i + 1), len);
+        if(self->is_utf8) {
+            argv[i] = SvPVutf8(ST(i + 1), len);
+        } else {
+            argv[i] = SvPV(ST(i + 1), len);
+        }
         argvlen[i] = len;
     }
 
@@ -1164,7 +1196,11 @@ CODE:
     argv[0] = "KEYS";
     argvlen[0] = 4;
     for (i = 1; i < argc; i++) {
-        argv[i] = SvPV(ST(i), len);
+        if(self->is_utf8) {
+            argv[i] = SvPVutf8(ST(i), len);
+        } else {
+            argv[i] = SvPV(ST(i), len);
+        }
         argvlen[i] = len;
     }
 
@@ -1204,7 +1240,11 @@ CODE:
     argv[0] = "INFO";
     argvlen[0] = 4;
     for (i = 1; i < argc; i++) {
-        argv[i] = SvPV(ST(i), len);
+        if(self->is_utf8) {
+            argv[i] = SvPVutf8(ST(i), len);
+        } else {
+            argv[i] = SvPV(ST(i), len);
+        }
         argvlen[i] = len;
     }
 
@@ -1249,7 +1289,11 @@ CODE:
     Newx(argvlen, sizeof(size_t) * argc, size_t);
 
     for (i = 0; i < argc; i++) {
-        argv[i] = SvPV(ST(i+1), len);
+        if(self->is_utf8) {
+            argv[i] = SvPVutf8(ST(i+1), len);
+        } else {
+            argv[i] = SvPV(ST(i+1), len);
+        }
         argvlen[i] = len;
         DEBUG_MSG("argv[%d] = %s", i, argv[i]);
     }
