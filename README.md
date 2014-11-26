@@ -1,6 +1,6 @@
 # NAME
 
-Redis::Fast - Perl binding for Redis database
+Redis::Fast - Perl binding for Redis database [![Build Status](https://secure.travis-ci.org/ravengerUA/Redis-Fast.png)](http://travis-ci.org/ravengerUA/Redis-Fast)
 
 # SYNOPSIS
 
